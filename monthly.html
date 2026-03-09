@@ -1,0 +1,903 @@
+ <!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>월간 직장 사주</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      background: #f4f5f7;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .screen {
+      display: none;
+      width: 100%;
+      max-width: 420px;
+      min-height: 100vh;
+      flex-direction: column;
+      background: #fff;
+    }
+    .screen.active { display: flex; }
+
+    /* ── 버튼 ── */
+    .btn {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      border: none;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-white { background: #fff; color: #6B3FA0; }
+    .btn-purple { background: #6B3FA0; color: #fff; }
+    .btn-disabled { background: #E5E8EB; color: #B0B8C1; cursor: not-allowed; }
+
+    /* ── 인트로 ── */
+    #screen-intro {
+      justify-content: space-between;
+      padding: 60px 24px 40px;
+      background: linear-gradient(160deg, #4A1A8C 0%, #6B3FA0 60%, #9B59D4 100%);
+      color: #fff;
+    }
+    .intro-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 28px;
+    }
+    .intro-month {
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0.75;
+      margin-bottom: 6px;
+    }
+    .intro-title { font-size: 30px; font-weight: 900; line-height: 1.3; margin-bottom: 14px; }
+    .intro-desc { font-size: 15px; line-height: 1.65; opacity: 0.82; }
+    .intro-cards {
+      display: flex;
+      gap: 10px;
+      margin-top: 28px;
+    }
+    .intro-card {
+      flex: 1;
+      background: rgba(255,255,255,0.13);
+      border-radius: 12px;
+      padding: 14px 10px;
+      text-align: center;
+    }
+    .intro-card-icon { font-size: 22px; margin-bottom: 6px; }
+    .intro-card-text { font-size: 12px; font-weight: 600; opacity: 0.9; line-height: 1.4; }
+    .intro-note { font-size: 12px; opacity: 0.55; text-align: center; margin-bottom: 14px; }
+
+    /* ── 입력 ── */
+    #screen-input { }
+    .input-header {
+      padding: 20px 24px 20px;
+      border-bottom: 1px solid #F2F4F6;
+    }
+    .back-btn {
+      background: none; border: none;
+      font-size: 22px; cursor: pointer;
+      color: #191F28; margin-bottom: 20px;
+      display: block;
+    }
+    .input-title { font-size: 22px; font-weight: 800; color: #191F28; line-height: 1.4; }
+    .input-sub { font-size: 14px; color: #6B7684; margin-top: 6px; }
+    .input-body { padding: 24px 24px 0; flex: 1; }
+    .field-label { font-size: 13px; font-weight: 600; color: #6B7684; margin-bottom: 10px; }
+    .field-row { display: flex; gap: 10px; margin-bottom: 20px; }
+    .field-select {
+      flex: 1;
+      padding: 14px 12px;
+      border: 1.5px solid #E5E8EB;
+      border-radius: 10px;
+      font-size: 15px;
+      color: #191F28;
+      background: #fff;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7684' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+    .field-select:focus { outline: none; border-color: #6B3FA0; }
+    .gender-row { display: flex; gap: 10px; margin-bottom: 24px; }
+    .gender-btn {
+      flex: 1; padding: 14px;
+      border-radius: 10px;
+      border: 1.5px solid #E5E8EB;
+      background: #fff; font-size: 15px;
+      font-weight: 600; color: #6B7684;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .gender-btn.selected { border-color: #6B3FA0; background: #F3EEFF; color: #6B3FA0; }
+    .input-footer { padding: 12px 24px 40px; }
+
+    /* ── 로딩 ── */
+    #screen-loading {
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+    }
+    .loading-emoji { font-size: 52px; animation: float 1.2s ease-in-out infinite alternate; }
+    @keyframes float { from { transform: translateY(0) rotate(-5deg); } to { transform: translateY(-14px) rotate(5deg); } }
+    .loading-title { font-size: 18px; font-weight: 700; color: #191F28; }
+    .loading-sub { font-size: 14px; color: #6B7684; }
+    .progress-bar { width: 180px; height: 4px; background: #F2F4F6; border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #6B3FA0, #9B59D4); border-radius: 2px; animation: prog 2.3s ease forwards; }
+    @keyframes prog { from { width: 0%; } to { width: 100%; } }
+
+    /* ── 결과 ── */
+    #screen-result { overflow-y: auto; }
+
+    .result-hero {
+      padding: 28px 24px 32px;
+      background: linear-gradient(150deg, #4A1A8C, #6B3FA0, #9B59D4);
+      color: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .result-hero::after {
+      content: '🔮';
+      position: absolute;
+      right: 20px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 80px;
+      opacity: 0.12;
+    }
+    .hero-meta { font-size: 13px; opacity: 0.7; margin-bottom: 6px; }
+    .hero-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .hero-month { font-size: 24px; font-weight: 900; margin-bottom: 18px; }
+    .hero-summary {
+      background: rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    /* 탭 */
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid #F2F4F6;
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 10;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 14px 4px;
+      border: none;
+      background: none;
+      font-size: 13px;
+      font-weight: 600;
+      color: #B0B8C1;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .tab-btn.active { color: #6B3FA0; border-bottom-color: #6B3FA0; }
+
+    .tab-content { display: none; padding: 20px 20px 32px; }
+    .tab-content.active { display: block; }
+
+    /* 카드 */
+    .card {
+      background: #F8F9FA;
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 12px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .card-icon { font-size: 18px; }
+    .card-title { font-size: 13px; font-weight: 700; color: #6B7684; }
+
+    /* 점수 게이지 */
+    .gauge-wrap { margin-bottom: 14px; }
+    .gauge-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+    .gauge-name { color: #6B7684; }
+    .gauge-val { font-weight: 700; color: #191F28; }
+    .gauge-bg { height: 8px; background: #E5E8EB; border-radius: 4px; overflow: hidden; }
+    .gauge-fill { height: 100%; border-radius: 4px; }
+
+    /* 주간 흐름 */
+    .week-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .week-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 14px;
+      border: 1.5px solid #F2F4F6;
+    }
+    .week-label { font-size: 11px; font-weight: 700; color: #6B7684; margin-bottom: 6px; }
+    .week-emoji { font-size: 22px; margin-bottom: 6px; display: block; }
+    .week-title { font-size: 13px; font-weight: 700; color: #191F28; margin-bottom: 4px; }
+    .week-desc { font-size: 12px; color: #6B7684; line-height: 1.5; }
+
+    /* 이직 타이밍 미터 */
+    .timing-meter {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      border: 1.5px solid #F2F4F6;
+      margin-bottom: 12px;
+    }
+    .meter-title { font-size: 13px; font-weight: 700; color: #191F28; margin-bottom: 12px; }
+    .meter-bar-wrap { position: relative; margin-bottom: 8px; }
+    .meter-bg { height: 12px; background: linear-gradient(90deg, #E5E8EB 0%, #FFB800 40%, #00B050 70%, #F04452 100%); border-radius: 6px; }
+    .meter-pointer {
+      position: absolute;
+      top: -4px;
+      width: 20px; height: 20px;
+      background: #fff;
+      border: 3px solid #191F28;
+      border-radius: 50%;
+      transform: translateX(-50%);
+      transition: left 0.8s ease;
+    }
+    .meter-labels { display: flex; justify-content: space-between; font-size: 10px; color: #6B7684; margin-top: 8px; }
+    .meter-result { text-align: center; margin-top: 14px; }
+    .meter-result-grade { font-size: 20px; font-weight: 800; color: #191F28; }
+    .meter-result-sub { font-size: 13px; color: #6B7684; margin-top: 4px; }
+
+    /* 조언 카드 */
+    .advice-item {
+      display: flex;
+      gap: 12px;
+      padding: 14px;
+      background: #fff;
+      border-radius: 12px;
+      border: 1.5px solid #F2F4F6;
+      margin-bottom: 8px;
+      align-items: flex-start;
+    }
+    .advice-dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .advice-dot-green { background: #E6F9F0; }
+    .advice-dot-red { background: #FFF0F0; }
+    .advice-dot-blue { background: #EEF5FF; }
+    .advice-text { font-size: 14px; color: #191F28; line-height: 1.55; padding-top: 3px; }
+
+    /* 행운 정보 */
+    .luck-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .luck-item-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      border: 1.5px solid #F2F4F6;
+      text-align: center;
+    }
+    .luck-item-icon { font-size: 24px; margin-bottom: 6px; display: block; }
+    .luck-item-label { font-size: 11px; color: #6B7684; font-weight: 600; margin-bottom: 4px; }
+    .luck-item-value { font-size: 15px; font-weight: 700; color: #191F28; }
+
+    /* 공유 */
+    .share-section { padding: 0 20px 40px; }
+    .share-btn {
+      width: 100%; padding: 16px;
+      border-radius: 14px; border: none;
+      background: #6B3FA0; color: #fff;
+      font-size: 16px; font-weight: 700;
+      cursor: pointer; display: flex;
+      align-items: center; justify-content: center; gap: 8px;
+    }
+    .share-btn:active { opacity: 0.85; }
+    .retry-btn {
+      width: 100%; padding: 14px;
+      border-radius: 14px;
+      border: 1.5px solid #E5E8EB;
+      background: #fff; color: #6B7684;
+      font-size: 15px; font-weight: 600;
+      cursor: pointer; margin-top: 10px;
+    }
+
+    .highlight-purple { color: #6B3FA0; font-weight: 700; }
+    .highlight-green { color: #00B050; font-weight: 700; }
+    .highlight-red { color: #F04452; font-weight: 700; }
+    .highlight-orange { color: #FF7D00; font-weight: 700; }
+  </style>
+</head>
+<body>
+
+<!-- ── 인트로 ── -->
+<div id="screen-intro" class="screen active">
+  <div>
+    <div class="intro-badge">📅 월간 직장 사주</div>
+    <div class="intro-month" id="intro-month-label"></div>
+    <div class="intro-title">이번 달<br>직장 흐름은<br>어떨까요?</div>
+    <div class="intro-desc" style="margin-top:10px">생년월일로 이번 달 직장 운세와<br>이직 타이밍을 분석해드려요.</div>
+    <div class="intro-cards">
+      <div class="intro-card">
+        <div class="intro-card-icon">📊</div>
+        <div class="intro-card-text">주간별<br>흐름 분석</div>
+      </div>
+      <div class="intro-card">
+        <div class="intro-card-icon">🚪</div>
+        <div class="intro-card-text">이직 타이밍<br>미터</div>
+      </div>
+      <div class="intro-card">
+        <div class="intro-card-icon">✅</div>
+        <div class="intro-card-text">이번 달<br>해야 할 것</div>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div class="intro-note">매달 업데이트 · 무료</div>
+    <button class="btn btn-white" onclick="showScreen('input')">내 직장운 보기</button>
+  </div>
+</div>
+
+<!-- ── 입력 ── -->
+<div id="screen-input" class="screen">
+  <div class="input-header">
+    <button class="back-btn" onclick="showScreen('intro')">←</button>
+    <div class="input-title">생년월일을<br>알려주세요</div>
+    <div class="input-sub">이번 달 직장 운세를 분석해드려요</div>
+  </div>
+  <div class="input-body">
+    <div class="field-label">출생 연도</div>
+    <div class="field-row">
+      <select id="sel-year" class="field-select" onchange="checkInput()">
+        <option value="">연도 선택</option>
+      </select>
+    </div>
+    <div class="field-label">출생 월 / 일</div>
+    <div class="field-row">
+      <select id="sel-month" class="field-select" onchange="checkInput()">
+        <option value="">월</option>
+      </select>
+      <select id="sel-day" class="field-select" onchange="checkInput()">
+        <option value="">일</option>
+      </select>
+    </div>
+    <div class="field-label">성별</div>
+    <div class="gender-row">
+      <button class="gender-btn" id="btn-male" onclick="selectGender('male')">남성</button>
+      <button class="gender-btn" id="btn-female" onclick="selectGender('female')">여성</button>
+    </div>
+  </div>
+  <div class="input-footer">
+    <button class="btn btn-disabled" id="btn-submit" onclick="startAnalysis()" disabled>이번 달 운세 보기</button>
+  </div>
+</div>
+
+<!-- ── 로딩 ── -->
+<div id="screen-loading" class="screen">
+  <div class="loading-emoji">📅</div>
+  <div class="loading-title" id="loading-title">이번 달 사주 분석 중</div>
+  <div class="loading-sub" id="loading-sub">직장 흐름을 살펴보고 있어요...</div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+</div>
+
+<!-- ── 결과 ── -->
+<div id="screen-result" class="screen">
+
+  <!-- 히어로 -->
+  <div class="result-hero">
+    <div class="hero-meta" id="res-meta"></div>
+    <div class="hero-name" id="res-name"></div>
+    <div class="hero-month" id="res-month-title"></div>
+    <div class="hero-summary" id="res-summary"></div>
+  </div>
+
+  <!-- 탭 -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab(0)">직장 흐름</button>
+    <button class="tab-btn" onclick="switchTab(1)">이직 타이밍</button>
+    <button class="tab-btn" onclick="switchTab(2)">회의운</button>
+    <button class="tab-btn" onclick="switchTab(3)">이달의 조언</button>
+    <button class="tab-btn" onclick="switchTab(4)">행운 정보</button>
+  </div>
+
+  <!-- 탭1: 직장 흐름 -->
+  <div class="tab-content active" id="tab-0">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">📊</span>
+        <span class="card-title">이번 달 세부 운세</span>
+      </div>
+      <div id="res-gauges"></div>
+    </div>
+    <div class="card" style="padding:16px">
+      <div class="card-header">
+        <span class="card-icon">📆</span>
+        <span class="card-title">주간별 흐름</span>
+      </div>
+      <div class="week-grid" id="res-weeks"></div>
+    </div>
+  </div>
+
+  <!-- 탭2: 이직 타이밍 -->
+  <div class="tab-content" id="tab-1">
+    <div class="card" style="padding:18px 16px">
+      <div class="card-header">
+        <span class="card-icon">🚪</span>
+        <span class="card-title">이직 타이밍 미터</span>
+      </div>
+      <div class="timing-meter" style="border:none; padding:0; margin-bottom:0">
+        <div class="meter-bar-wrap">
+          <div class="meter-bg"></div>
+          <div class="meter-pointer" id="meter-pointer"></div>
+        </div>
+        <div class="meter-labels">
+          <span>준비 중</span>
+          <span>적당</span>
+          <span>최적</span>
+          <span>주의</span>
+        </div>
+        <div class="meter-result">
+          <div class="meter-result-grade" id="meter-grade"></div>
+          <div class="meter-result-sub" id="meter-sub"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">🗓</span>
+        <span class="card-title">이직 추천 시기</span>
+      </div>
+      <div style="font-size:16px; font-weight:700; color:#191F28; margin-bottom:6px" id="res-timing-title"></div>
+      <div style="font-size:13px; color:#6B7684; line-height:1.6" id="res-timing-detail"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">💡</span>
+        <span class="card-title">이번 달 이직 전략</span>
+      </div>
+      <div style="font-size:14px; color:#191F28; line-height:1.7" id="res-strategy"></div>
+    </div>
+  </div>
+
+  <!-- 탭3: 오늘의 회의운 -->
+  <div class="tab-content" id="tab-2">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">🎤</span>
+        <span class="card-title">오늘의 발표 · 미팅운</span>
+      </div>
+      <div id="res-meeting-score-wrap" style="display:flex; gap:10px; margin-bottom:4px"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">⏰</span>
+        <span class="card-title">시간대별 회의 운세</span>
+      </div>
+      <div id="res-time-slots"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">💡</span>
+        <span class="card-title">오늘 회의 성공 팁</span>
+      </div>
+      <div id="res-meeting-tips"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">⚠️</span>
+        <span class="card-title">오늘 회의에서 주의할 것</span>
+      </div>
+      <div style="font-size:14px; color:#191F28; line-height:1.75" id="res-meeting-caution"></div>
+    </div>
+  </div>
+
+  <!-- 탭4: 이달의 조언 -->
+  <div class="tab-content" id="tab-3">
+    <div class="card" style="padding:16px">
+      <div class="card-header">
+        <span class="card-icon">✅</span>
+        <span class="card-title">이번 달 해야 할 것</span>
+      </div>
+      <div id="res-dos"></div>
+    </div>
+    <div class="card" style="padding:16px; margin-top:4px">
+      <div class="card-header">
+        <span class="card-icon">⚠️</span>
+        <span class="card-title">이번 달 조심할 것</span>
+      </div>
+      <div id="res-donts"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">💬</span>
+        <span class="card-title">이달의 한마디</span>
+      </div>
+      <div style="font-size:15px; color:#191F28; line-height:1.7; font-weight:500" id="res-quote"></div>
+    </div>
+  </div>
+
+  <!-- 탭5: 행운 정보 -->
+  <div class="tab-content" id="tab-4">
+    <div class="card" style="padding:16px">
+      <div class="card-header">
+        <span class="card-icon">🍀</span>
+        <span class="card-title">이번 달 행운 정보</span>
+      </div>
+      <div class="luck-grid" id="res-luck"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-icon">🔑</span>
+        <span class="card-title">이번 달 키워드</span>
+      </div>
+      <div style="font-size:14px; color:#191F28; line-height:1.8" id="res-keywords"></div>
+    </div>
+  </div>
+
+  <div class="share-section" style="margin-top:8px">
+    <button class="share-btn" onclick="shareResult()">
+      <span>📤</span> 결과 공유하기
+    </button>
+    <button class="retry-btn" onclick="showScreen('input')">다시 분석하기</button>
+  </div>
+</div>
+
+<script>
+  const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const today = new Date();
+  const curYear = today.getFullYear();
+  const curMonth = today.getMonth(); // 0-based
+
+  document.getElementById('intro-month-label').textContent = `${curYear}년 ${MONTHS[curMonth]} 운세`;
+
+  // ── 화면 전환 ──
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+  }
+
+  // ── 탭 전환 ──
+  function switchTab(idx) {
+    document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', i === idx));
+    document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === idx));
+  }
+
+  // ── 셀렉트 초기화 ──
+  (function() {
+    const ySel = document.getElementById('sel-year');
+    for (let y = curYear - 18; y >= 1950; y--) ySel.add(new Option(y + '년', y));
+    const mSel = document.getElementById('sel-month');
+    for (let m = 1; m <= 12; m++) mSel.add(new Option(m + '월', m));
+    const dSel = document.getElementById('sel-day');
+    for (let d = 1; d <= 31; d++) dSel.add(new Option(d + '일', d));
+  })();
+
+  let selectedGender = null;
+  function selectGender(g) {
+    selectedGender = g;
+    document.getElementById('btn-male').classList.toggle('selected', g === 'male');
+    document.getElementById('btn-female').classList.toggle('selected', g === 'female');
+    checkInput();
+  }
+  function checkInput() {
+    const ok = document.getElementById('sel-year').value &&
+               document.getElementById('sel-month').value &&
+               document.getElementById('sel-day').value && selectedGender;
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = !ok;
+    btn.className = 'btn ' + (ok ? 'btn-purple' : 'btn-disabled');
+  }
+
+  // ── 로딩 ──
+  function startAnalysis() {
+    showScreen('loading');
+    const msgs = [
+      ['📅 이번 달 사주 분석 중', '직장 흐름을 살펴보고 있어요...'],
+      ['⚖️ 오행 균형 계산 중', '천간지지를 맞춰보고 있어요...'],
+      ['🚪 이직 타이밍 측정 중', '최적 시기를 찾고 있어요...'],
+    ];
+    let i = 0;
+    const interval = setInterval(() => {
+      i = (i + 1) % msgs.length;
+      document.getElementById('loading-title').textContent = msgs[i][0];
+      document.getElementById('loading-sub').textContent = msgs[i][1];
+    }, 750);
+    const fill = document.getElementById('progress-fill');
+    fill.style.animation = 'none'; fill.offsetHeight; fill.style.animation = 'prog 2.3s ease forwards';
+    setTimeout(() => { clearInterval(interval); buildResult(); showScreen('result'); }, 2400);
+  }
+
+  // ── RNG ──
+  function rng(s, min, max) {
+    const year = +document.getElementById('sel-year').value;
+    const month = +document.getElementById('sel-month').value;
+    const day = +document.getElementById('sel-day').value;
+    const seed = year * 1000 + month * 31 + day + curMonth * 11 + curYear;
+    let x = Math.sin(s + seed) * 99999;
+    x -= Math.floor(x);
+    return Math.floor(x * (max - min + 1)) + min;
+  }
+
+  // ── 결과 생성 ──
+  function buildResult() {
+    const year = +document.getElementById('sel-year').value;
+    const month = +document.getElementById('sel-month').value;
+    const day = +document.getElementById('sel-day').value;
+    const gender = selectedGender === 'male' ? '남성' : '여성';
+    const monthLabel = MONTHS[curMonth];
+
+    // 히어로
+    document.getElementById('res-meta').textContent = `${year}년 ${month}월 ${day}일생 · ${gender}`;
+    document.getElementById('res-name').textContent = `${year}년생의`;
+    document.getElementById('res-month-title').textContent = `${curYear}년 ${monthLabel} 직장운`;
+
+    const summaries = [
+      '이번 달은 새로운 변화의 기운이 강하게 흐릅니다. 그동안 쌓아온 역량을 발휘할 좋은 기회가 찾아와요.',
+      '이번 달은 안정적인 흐름 속에서 실력을 차곡차곡 쌓아가는 시기예요. 서두르지 않는 것이 오히려 유리해요.',
+      '이번 달은 대인관계에서 좋은 에너지가 흐릅니다. 주변 사람들과의 협력이 큰 결과를 만들어낼 수 있어요.',
+      '이번 달은 변화와 안정 사이에서 균형을 잡아야 하는 시기예요. 중요한 결정은 신중하게 내리는 게 좋아요.',
+      '이번 달은 업무 성과가 두드러지는 시기입니다. 준비해온 것들이 빛을 발하는 달이에요.',
+    ];
+    document.getElementById('res-summary').textContent = summaries[rng(99, 0, summaries.length - 1)];
+
+    // 세부 운세 게이지
+    const gauges = [
+      { name: '전체 직장운', score: rng(1, 45, 98), color: '#6B3FA0' },
+      { name: '업무 성과운', score: rng(2, 40, 95), color: '#0064FF' },
+      { name: '대인관계운', score: rng(3, 38, 97), color: '#00B050' },
+      { name: '재물·연봉운', score: rng(4, 35, 92), color: '#FFB800' },
+      { name: '이직·변화운', score: rng(5, 30, 96), color: '#F04452' },
+    ];
+    const gEl = document.getElementById('res-gauges');
+    gEl.innerHTML = gauges.map(g => `
+      <div class="gauge-wrap">
+        <div class="gauge-label">
+          <span class="gauge-name">${g.name}</span>
+          <span class="gauge-val">${g.score}점</span>
+        </div>
+        <div class="gauge-bg">
+          <div class="gauge-fill" style="width:${g.score}%; background:${g.color}"></div>
+        </div>
+      </div>
+    `).join('');
+
+    // 주간 흐름
+    const weekData = [
+      {
+        items: [
+          ['⚡ 에너지 충전', '활발한 시작'],
+          ['🔥 성과 집중', '핵심 업무 추진'],
+          ['🤝 협업 강세', '팀워크 발휘'],
+          ['🌙 마무리 정리', '점검과 재충전'],
+        ]
+      }
+    ];
+    const weekDescs = [
+      ['새로운 프로젝트를 시작하거나 계획을 세우기 좋아요.', '이번 달 가장 중요한 업무를 처리하기 좋은 시기예요.', '동료나 상사와의 소통이 원활해지는 때예요.', '한 달을 돌아보며 다음 달을 준비해보세요.'],
+      ['적극적으로 의견을 내면 좋은 반응을 받을 수 있어요.', '집중력이 최고조에 달하는 시기예요.', '네트워킹이나 협업 미팅에 적극 참여해보세요.', '무리하지 말고 충전의 시간을 가지세요.'],
+      ['중요한 미팅이나 발표가 있다면 이번 주를 노려보세요.', '업무 효율이 높아지는 시기예요.', '주변의 도움을 받아 어려운 과제를 해결해보세요.', '감사 인사와 작은 배려로 관계를 다져보세요.'],
+    ];
+    const wIdx = rng(20, 0, 2);
+    const weeks = ['1주차', '2주차', '3주차', '4주차'];
+    const wEmojis = [['⚡','🔥','🤝','🌙'],['🌅','💪','🎯','🌿'],['🚀','⭐','🤲','✨']];
+    const wTitles = [['에너지 충전','성과 집중','협업 강세','마무리 정리'],
+                     ['활기찬 시작','집중력 최고','네트워크 활성','여유와 성찰'],
+                     ['도약의 시작','역량 발휘','팀 시너지','감사와 마무리']];
+    const wEl = document.getElementById('res-weeks');
+    wEl.innerHTML = weeks.map((w, i) => `
+      <div class="week-card">
+        <div class="week-label">${w}</div>
+        <span class="week-emoji">${wEmojis[wIdx][i]}</span>
+        <div class="week-title">${wTitles[wIdx][i]}</div>
+        <div class="week-desc">${weekDescs[wIdx][i]}</div>
+      </div>
+    `).join('');
+
+    // 이직 타이밍 미터
+    const timingScore = rng(6, 20, 95);
+    const pointer = document.getElementById('meter-pointer');
+    setTimeout(() => { pointer.style.left = timingScore + '%'; }, 300);
+
+    const timingGrades = [
+      [0, 35, '아직 준비 중이에요', '지금보다는 역량을 더 쌓고 나서 이직을 고려해보세요.'],
+      [36, 60, '조금 더 준비해요', '방향은 잡혔지만 타이밍을 조금 더 기다리는 게 좋아요.'],
+      [61, 80, '이직 적기에 가까워요', '지금부터 준비하면 좋은 결과를 기대할 수 있어요.'],
+      [81, 100, '최고의 이직 타이밍!', '지금이 이직을 결심하기 가장 좋은 때예요. 용기를 내보세요.'],
+    ];
+    const tg = timingGrades.find(([min, max]) => timingScore >= min && timingScore <= max);
+    document.getElementById('meter-grade').textContent = tg[2];
+    document.getElementById('meter-sub').textContent = tg[3];
+
+    const timings = [
+      { t: '이번 달이 최적', d: `${monthLabel} 안에 이력서를 업데이트하고 지원을 시작해보세요. 준비가 되어 있다면 망설임 없이 도전할 때예요.` },
+      { t: '1~2개월 후 권장', d: '지금부터 차근차근 준비하세요. 1~2개월 후가 가장 좋은 이직 타이밍이에요.' },
+      { t: '3개월 후 권장', d: '현재 진행 중인 업무를 마무리하고, 3개월 후를 목표로 준비해보세요.' },
+      { t: '올 하반기 권장', d: '하반기 공채 시즌을 노려보세요. 그 전까지 포트폴리오를 탄탄히 준비하는 게 좋아요.' },
+      { t: '내년 상반기 권장', d: '올해는 현직에서 성과를 쌓고, 내년 상반기에 이직을 시도하면 연봉 협상이 유리해요.' },
+    ];
+    const tIdx = rng(7, 0, 4);
+    document.getElementById('res-timing-title').textContent = timings[tIdx].t;
+    document.getElementById('res-timing-detail').textContent = timings[tIdx].d;
+
+    const strategies = [
+      '지금 당장 LinkedIn과 잡코리아 프로필을 최신으로 업데이트하세요. 헤드헌터의 연락이 올 수 있어요.',
+      '이번 달은 이직보다 현직에서의 성과 쌓기에 집중하세요. 좋은 성과가 이직 협상력을 높여줄 거예요.',
+      '업계 커뮤니티나 세미나에 참석해 네트워크를 넓혀보세요. 좋은 기회는 사람에게서 와요.',
+      '이직을 원하는 회사의 채용 공고를 꾸준히 체크하고 준비물(포트폴리오, 자기소개서)을 미리 갖춰두세요.',
+      '현재 연봉과 시장 가치를 비교해보세요. 잡코리아나 사람인 연봉 정보를 참고해 협상 기준을 세워보세요.',
+    ];
+    document.getElementById('res-strategy').textContent = strategies[rng(8, 0, 4)];
+
+    // 오늘의 회의운
+    const meetingScore = rng(30, 40, 99);
+    const presentScore = rng(31, 38, 99);
+
+    const meetingGradeLabel = (s) => {
+      if (s >= 85) return { label: '최고예요 🔥', color: '#F04452' };
+      if (s >= 70) return { label: '좋아요 ✨', color: '#00B050' };
+      if (s >= 55) return { label: '보통이에요 🌤', color: '#FFB800' };
+      return { label: '신중하게 💡', color: '#6B7684' };
+    };
+    const mg = meetingGradeLabel(meetingScore);
+    const pg = meetingGradeLabel(presentScore);
+
+    document.getElementById('res-meeting-score-wrap').innerHTML = `
+      <div style="flex:1; background:#F8F9FA; border-radius:12px; padding:16px; text-align:center">
+        <div style="font-size:11px; color:#6B7684; font-weight:600; margin-bottom:8px">미팅운</div>
+        <div style="font-size:28px; font-weight:900; color:${mg.color}; line-height:1">${meetingScore}</div>
+        <div style="font-size:11px; color:#6B7684; margin-top:2px">점</div>
+        <div style="font-size:12px; font-weight:700; color:${mg.color}; margin-top:8px">${mg.label}</div>
+      </div>
+      <div style="flex:1; background:#F8F9FA; border-radius:12px; padding:16px; text-align:center">
+        <div style="font-size:11px; color:#6B7684; font-weight:600; margin-bottom:8px">발표운</div>
+        <div style="font-size:28px; font-weight:900; color:${pg.color}; line-height:1">${presentScore}</div>
+        <div style="font-size:11px; color:#6B7684; margin-top:2px">점</div>
+        <div style="font-size:12px; font-weight:700; color:${pg.color}; margin-top:8px">${pg.label}</div>
+      </div>
+    `;
+
+    const timeSlots = [
+      { time: '오전 9~11시', emoji: '🌅', label: '집중력 최고', desc: '중요한 발표나 핵심 안건을 이 시간에 배치하세요.' },
+      { time: '오전 11~오후 1시', emoji: '⚡', label: '에너지 최고조', desc: '팀원들의 참여도가 높아지는 시간대예요.' },
+      { time: '오후 1~3시', emoji: '😴', label: '집중력 저하', desc: '점심 후라 긴 회의는 피하고 짧게 진행하세요.' },
+      { time: '오후 3~5시', emoji: '🎯', label: '결정 최적 시간', desc: '아이디어보다 의사결정 회의에 적합해요.' },
+    ];
+    const tsBestIdx = rng(32, 0, 1);
+    document.getElementById('res-time-slots').innerHTML = timeSlots.map((s, i) => `
+      <div class="advice-item" style="${i === tsBestIdx ? 'border-color:#6B3FA0; background:#F3EEFF' : ''}">
+        <div class="advice-dot" style="background:${i === tsBestIdx ? '#EDE0FF' : '#F2F4F6'}; font-size:16px; width:32px; height:32px">
+          ${s.emoji}
+        </div>
+        <div style="flex:1">
+          <div style="font-size:13px; font-weight:700; color:${i === tsBestIdx ? '#6B3FA0' : '#191F28'}; margin-bottom:3px">
+            ${s.time} · ${s.label}${i === tsBestIdx ? ' 👑' : ''}
+          </div>
+          <div style="font-size:12px; color:#6B7684; line-height:1.5">${s.desc}</div>
+        </div>
+      </div>
+    `).join('');
+
+    const tipSets = [
+      ['결론부터 말하고 근거를 설명하면 설득력이 두 배예요.', '미리 예상 질문을 3개 준비해두면 당황하지 않아요.', '발표 전 물 한 잔과 심호흡으로 긴장을 풀어보세요.'],
+      ['핵심 메시지를 한 문장으로 정리해서 시작하세요.', '슬라이드보다 말이 먼저예요. 내용을 충분히 숙지하세요.', '참석자 이름을 불러주면 집중도가 확 올라가요.'],
+      ['회의 시작 5분 전에 자료를 다시 한 번 검토하세요.', '반대 의견이 나와도 먼저 공감해주는 게 좋아요.', '숫자와 데이터로 주장을 뒷받침하면 신뢰감이 높아져요.'],
+    ];
+    const tipIdx = rng(33, 0, 2);
+    document.getElementById('res-meeting-tips').innerHTML = tipSets[tipIdx].map(tip =>
+      `<div class="advice-item"><div class="advice-dot advice-dot-blue" style="font-size:13px; width:28px; height:28px">💡</div><div class="advice-text">${tip}</div></div>`
+    ).join('');
+
+    const cautions = [
+      '오늘은 즉흥적인 발언보다 준비한 내용에 집중하는 게 좋아요. 감정적인 반응은 잠시 참고, 논리적으로 대응하세요.',
+      '오늘은 말실수에 주의가 필요해요. 말하기 전에 한 번 더 생각하고, 확실하지 않은 정보는 "확인 후 공유하겠다"고 하세요.',
+      '오늘은 상대방의 말을 끊지 않는 게 중요해요. 경청하는 모습이 오히려 당신의 신뢰도를 높여줄 거예요.',
+      '오늘 회의에서는 무리하게 모든 것을 해결하려 하지 마세요. 핵심 안건 1~2개에 집중하는 게 더 효과적이에요.',
+      '오늘은 자료 공유나 화면 연결 등 기술적인 준비를 미리 점검해두세요. 작은 실수가 첫인상을 흔들 수 있어요.',
+    ];
+    document.getElementById('res-meeting-caution').textContent = cautions[rng(34, 0, 4)];
+
+    // 이달의 조언
+    const dosList = [
+      ['✅ 업무 성과를 눈에 보이게 기록해두기', '✅ 주변 동료와 적극적으로 소통하기', '✅ 새로운 기술이나 역량 개발에 투자하기'],
+      ['✅ 중요한 결정은 신중하게 문서화하기', '✅ 멘토나 선배에게 조언 구하기', '✅ 건강 관리로 업무 집중력 높이기'],
+      ['✅ 상사에게 진행 상황을 적극적으로 보고하기', '✅ 팀 프로젝트에서 리더십 발휘하기', '✅ 커리어 목표를 구체적으로 설정하기'],
+    ];
+    const dontsList = [
+      ['⚠️ 충동적인 퇴사나 갑작스러운 결정 주의', '⚠️ 직장 내 갈등을 키우지 않기', '⚠️ 소문이나 험담에 휘말리지 않기'],
+      ['⚠️ 과도한 야근으로 번아웃 주의', '⚠️ 중요한 계약이나 서류 꼼꼼히 확인', '⚠️ 재정 관련 결정을 서두르지 않기'],
+      ['⚠️ 감정적인 대응보다 논리적 접근 유지', '⚠️ 새로운 프로젝트를 무리하게 떠맡지 않기', '⚠️ SNS에 직장 관련 내용 게시 자제'],
+    ];
+    const advIdx = rng(9, 0, 2);
+    document.getElementById('res-dos').innerHTML = dosList[advIdx].map(t =>
+      `<div class="advice-item"><div class="advice-dot advice-dot-green" style="font-size:13px">✓</div><div class="advice-text">${t.replace('✅ ', '')}</div></div>`
+    ).join('');
+    document.getElementById('res-donts').innerHTML = dontsList[advIdx].map(t =>
+      `<div class="advice-item"><div class="advice-dot advice-dot-red" style="font-size:13px">!</div><div class="advice-text">${t.replace('⚠️ ', '')}</div></div>`
+    ).join('');
+
+    const quotes = [
+      '지금 이 자리에서 최선을 다하는 사람이 결국 가장 좋은 기회를 잡아요.',
+      '이직은 도망이 아니라 성장이에요. 방향이 분명하다면 두려워하지 마세요.',
+      '오늘 심은 씨앗이 언제 꽃 피울지는 아무도 몰라요. 하지만 심지 않으면 꽃은 없어요.',
+      '잘하는 사람보다 꾸준한 사람이 결국 이겨요. 이번 달도 꾸준히 가보세요.',
+      '직장은 인생의 일부예요. 일 때문에 자신을 잃지 마세요.',
+    ];
+    document.getElementById('res-quote').textContent = quotes[rng(10, 0, 4)];
+
+    // 행운 정보
+    const luckyDays = [
+      ['3일, 12일, 21일', '7일, 16일, 25일', '5일, 14일, 23일',
+       '1일, 10일, 19일, 28일', '8일, 17일, 26일'],
+    ];
+    const luckyColors = ['🔵 파랑', '🟢 초록', '🟣 보라', '⬛ 검정', '🟡 노랑'];
+    const luckyDirs = ['동쪽', '남쪽', '서쪽', '북쪽', '동남쪽'];
+    const luckyNums = [
+      ['3, 7, 21', '5, 9, 27', '2, 8, 14', '4, 6, 18', '1, 11, 33']
+    ];
+    const li = rng(11, 0, 4);
+    document.getElementById('res-luck').innerHTML = `
+      <div class="luck-item-card">
+        <span class="luck-item-icon">📅</span>
+        <div class="luck-item-label">행운의 날</div>
+        <div class="luck-item-value" style="font-size:13px">${luckyDays[0][li]}</div>
+      </div>
+      <div class="luck-item-card">
+        <span class="luck-item-icon">🎨</span>
+        <div class="luck-item-label">행운의 색</div>
+        <div class="luck-item-value">${luckyColors[li]}</div>
+      </div>
+      <div class="luck-item-card">
+        <span class="luck-item-icon">🧭</span>
+        <div class="luck-item-label">행운의 방향</div>
+        <div class="luck-item-value">${luckyDirs[li]}</div>
+      </div>
+      <div class="luck-item-card">
+        <span class="luck-item-icon">🔢</span>
+        <div class="luck-item-label">행운의 숫자</div>
+        <div class="luck-item-value">${luckyNums[0][li]}</div>
+      </div>
+    `;
+
+    const kwSets = [
+      '이번 달 키워드는 <span class="highlight-purple">성장</span>, <span class="highlight-green">협업</span>, <span class="highlight-orange">도전</span>이에요. 새로운 시도를 두려워하지 말고, 팀과 함께 움직이면 큰 결과를 만들 수 있어요.',
+      '이번 달 키워드는 <span class="highlight-purple">준비</span>, <span class="highlight-green">인내</span>, <span class="highlight-orange">집중</span>이에요. 서두르지 않고 탄탄하게 준비할수록 더 좋은 기회가 와요.',
+      '이번 달 키워드는 <span class="highlight-purple">변화</span>, <span class="highlight-green">소통</span>, <span class="highlight-orange">기회</span>예요. 변화를 긍정적으로 받아들이고, 주변과 적극 소통해보세요.',
+      '이번 달 키워드는 <span class="highlight-purple">실력</span>, <span class="highlight-green">신뢰</span>, <span class="highlight-orange">결단</span>이에요. 쌓아온 실력을 믿고, 결정할 때는 과감하게 나아가세요.',
+      '이번 달 키워드는 <span class="highlight-purple">균형</span>, <span class="highlight-green">지혜</span>, <span class="highlight-orange">회복</span>이에요. 일과 삶의 균형을 유지하면서 지혜롭게 판단하세요.',
+    ];
+    document.getElementById('res-keywords').innerHTML = kwSets[rng(12, 0, 4)];
+  }
+
+  // ── 공유 ──
+  function shareResult() {
+    const month = MONTHS[curMonth];
+    const year = document.getElementById('sel-year').value;
+    const text = `🔮 ${year}년생의 ${curYear}년 ${month} 직장 사주\n이번 달 이직 타이밍과 직장 흐름을 토스에서 확인해보세요!`;
+    if (navigator.share) {
+      navigator.share({ title: '월간 직장 사주', text });
+    } else {
+      navigator.clipboard.writeText(text).then(() => alert('결과가 복사됐어요!'));
+    }
+  }
+</script>
+</body>
+</html>
